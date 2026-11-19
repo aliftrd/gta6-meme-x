@@ -15,8 +15,14 @@ const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 const source = join(botDir, 'POST.json');
 const raw = readFileSync(source, 'utf8');
+// The gate caps POST.json at 16384 bytes and reads only X post addresses.
+if (Buffer.byteLength(raw, 'utf8') > 16384) {
+  console.error(`POST.json is over the gate's 16384-byte cap: ${source}`);
+  process.exit(1);
+}
 const post = JSON.parse(raw) as { url?: unknown };
-if (typeof post.url !== 'string' || !/^https:\/\/(www\.|mobile\.)?(x\.com|twitter\.com)\/.+\/(status|statuses|i\/web\/status)\/\d+/.test(post.url)) {
+const xPost = /^https:\/\/(www\.|mobile\.)?(x\.com|twitter\.com)\/[A-Za-z0-9_]+\/(status|statuses|i\/web\/status)\/\d+$/;
+if (typeof post.url !== 'string' || !xPost.test(post.url)) {
   console.error(`POST.json does not name an X post address: ${source}`);
   process.exit(1);
 }
